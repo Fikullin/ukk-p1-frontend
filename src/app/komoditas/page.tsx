@@ -7,6 +7,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import BorrowModal from '../../components/BorrowModal';
 import KomoditasModal from '../../components/KomoditasModal';
 import Toast from '../../components/Toast';
+import api from '../../lib/api';
 
 interface Komoditas {
   id: number;
@@ -63,15 +64,12 @@ export default function Komoditas() {
   const fetchKomoditas = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/komoditas', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await api.get('/api/komoditas', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setTools(data);
+      if (response.status === 200) {
+        setTools(response.data);
         setError(null);
       } else {
         setError('Gagal memuat data komoditas');
@@ -98,21 +96,16 @@ export default function Komoditas() {
   const handleAddSubmit = async (data: any) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:3001/api/komoditas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data)
+      const response = await api.post('/api/komoditas', data, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 
-      if (response.ok) {
+      if (response.status === 201 || response.status === 200) {
         setShowAddModal(false);
         fetchKomoditas();
         setToast({ message: 'Komoditas berhasil ditambahkan', type: 'success' });
       } else {
-        const respData = await response.json();
+        const respData = response.data;
         setToast({ message: respData.error || 'Gagal menambah komoditas', type: 'error' });
       }
     } catch (_error) {
@@ -137,21 +130,16 @@ export default function Komoditas() {
     if (!editingTool) return;
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/komoditas/${editingTool.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data)
+      const response = await api.put(`/api/komoditas/${editingTool.id}`, data, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setShowEditModal(false);
         fetchKomoditas();
         setToast({ message: 'Komoditas berhasil diupdate', type: 'success' });
       } else {
-        const respData = await response.json();
+        const respData = response.data;
         setToast({ message: respData.error || 'Gagal mengupdate komoditas', type: 'error' });
       }
     } catch (_error) {
@@ -170,18 +158,15 @@ export default function Komoditas() {
     if (toolToDelete === null) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/komoditas/${toolToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await api.delete(`/api/komoditas/${toolToDelete}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setTools(tools.filter(tool => tool.id !== toolToDelete));
         setToast({ message: 'Komoditas berhasil dihapus', type: 'success' });
       } else {
-        const data = await response.json();
+        const data = response.data;
         setToast({ message: data.error || 'Gagal menghapus komoditas', type: 'error' });
       }
     } catch (_error) {
@@ -201,21 +186,16 @@ export default function Komoditas() {
     if (!selectedToolForBorrow) return;
 
     try {
-      const response = await fetch('http://localhost:3001/api/peminjaman', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          komoditas_id: selectedToolForBorrow.id,
-          jumlah_pinjam: quantity,
-          tanggal_pinjam: new Date().toISOString().split('T')[0]
-        })
+      const response = await api.post('/api/peminjaman', {
+        komoditas_id: selectedToolForBorrow.id,
+        jumlah_pinjam: quantity,
+        tanggal_pinjam: new Date().toISOString().split('T')[0]
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 
-      const data = await response.json();
-      if (response.ok) {
+      const data = response.data;
+      if (response.status === 201 || response.status === 200) {
         setToast({ message: `Berhasil meminjam ${selectedToolForBorrow.nama}. Status: Menunggu validasi petugas`, type: 'success' });
         // Update local state to reflect reduced availability
         setTools(tools.map(tool =>

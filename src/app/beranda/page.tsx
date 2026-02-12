@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
+import api from '../../lib/api';
 
 interface User {
   id: number;
@@ -88,16 +89,16 @@ export default function Beranda() {
 
         if (userRole === 'siswa') {
           // Fetch siswa dashboard data
-          const currentResponse = await fetch('http://localhost:3001/api/peminjaman/hari-ini', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const currentResponse = await api.get('/api/peminjaman/hari-ini', {
+            headers: { Authorization: `Bearer ${token}` }
           });
-          const recentResponse = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const recentResponse = await api.get('/api/peminjaman/riwayat', {
+            headers: { Authorization: `Bearer ${token}` }
           });
 
-          if (currentResponse.ok && recentResponse.ok) {
-            const currentData = await currentResponse.json();
-            const recentData = await recentResponse.json();
+          if (currentResponse.status === 200 && recentResponse.status === 200) {
+            const currentData = currentResponse.data;
+            const recentData = recentResponse.data;
 
             setCurrentBorrowings(currentData);
             setRecentActivities(recentData.slice(0, 4));
@@ -109,16 +110,16 @@ export default function Beranda() {
           }
         } else if (userRole === 'petugas') {
           // Fetch petugas dashboard data
-          const todayResponse = await fetch('http://localhost:3001/api/peminjaman/hari-ini', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const todayResponse = await api.get('/api/peminjaman/hari-ini', {
+            headers: { Authorization: `Bearer ${token}` }
           });
-          const recentResponse = await fetch('http://localhost:3001/api/peminjaman', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const recentResponse = await api.get('/api/peminjaman', {
+            headers: { Authorization: `Bearer ${token}` }
           });
 
-          if (todayResponse.ok && recentResponse.ok) {
-            const todayData = await todayResponse.json();
-            const recentData = await recentResponse.json();
+          if (todayResponse.status === 200 && recentResponse.status === 200) {
+            const todayData = todayResponse.data;
+            const recentData = recentResponse.data;
 
             setTodayBorrowings(todayData);
             setRecentActivities(recentData.slice(0, 4));
@@ -130,16 +131,16 @@ export default function Beranda() {
           }
         } else if (userRole === 'administrator') {
           // Fetch admin dashboard data
-          const usersResponse = await fetch('http://localhost:3001/api/users', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const usersResponse = await api.get('/api/users', {
+            headers: { Authorization: `Bearer ${token}` }
           });
-          const activitiesResponse = await fetch('http://localhost:3001/api/peminjaman', {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const activitiesResponse = await api.get('/api/peminjaman', {
+            headers: { Authorization: `Bearer ${token}` }
           });
 
-          if (usersResponse.ok && activitiesResponse.ok) {
-            const usersData = await usersResponse.json();
-            const activitiesData = await activitiesResponse.json();
+          if (usersResponse.status === 200 && activitiesResponse.status === 200) {
+            const usersData = usersResponse.data;
+            const activitiesData = activitiesResponse.data;
 
             setRecentActivities(activitiesData.slice(0, 4));
 
@@ -191,24 +192,19 @@ export default function Beranda() {
       const today = new Date().toISOString().split('T')[0];
       const now = new Date().toTimeString().split(' ')[0];
 
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${returnItemId}/return`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          tanggal_kembali: today,
-          jam_kembali: now
-        })
+      const response = await api.put(`/api/peminjaman/${returnItemId}/return`, {
+        tanggal_kembali: today,
+        jam_kembali: now
+      }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setToast({ message: 'Barang berhasil dikembalikan', type: 'success' });
         // Reload page to refresh data
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        const data = await response.json();
+        const data = response.data;
         setToast({ message: data.error || 'Gagal mengembalikan barang', type: 'error' });
       }
     } catch (_err) {

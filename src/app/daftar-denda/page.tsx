@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
 import Toast from '../../components/Toast';
+import api from '../../lib/api';
 
 interface Denda {
   id: number;
@@ -70,27 +71,21 @@ export default function DaftarDenda() {
       const token = localStorage.getItem('token');
       
       // Fetch denda list
-      const listResponse = await fetch(`http://localhost:3001/api/users/${id}/denda`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const listResponse = await api.get(`/api/users/${id}/denda`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       // Fetch denda summary
-      const summaryResponse = await fetch(`http://localhost:3001/api/users/${id}/denda/summary`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const summaryResponse = await api.get(`/api/users/${id}/denda/summary`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (listResponse.ok) {
-        const data = await listResponse.json();
-        setDendaList(data);
+      if (listResponse.status === 200) {
+        setDendaList(listResponse.data);
       }
 
-      if (summaryResponse.ok) {
-        const summary = await summaryResponse.json();
-        setDendaSummary(summary);
+      if (summaryResponse.status === 200) {
+        setDendaSummary(summaryResponse.data);
       }
 
       setLoading(false);
@@ -146,16 +141,12 @@ export default function DaftarDenda() {
     setPaymentLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/denda/${selectedDenda.id}/bayar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+      const response = await api.post(`/api/denda/${selectedDenda.id}/bayar`, null, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setToast({ message: data.message || 'Pembayaran denda berhasil!', type: 'success' });
         setIsPaymentModalOpen(false);
         setSelectedDenda(null);
@@ -164,7 +155,7 @@ export default function DaftarDenda() {
           fetchDendaData(userId);
         }
       } else {
-        const error = await response.json();
+        const error = response.data;
         setToast({ message: error.error || 'Gagal memproses pembayaran', type: 'error' });
       }
     } catch (err) {

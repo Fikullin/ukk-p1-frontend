@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
+import api from '../../lib/api';
 
 interface Jurusan {
   id: number;
