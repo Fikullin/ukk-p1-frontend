@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import api from '../lib/api';
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,14 +17,12 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       const isRegisterPage = pathname === '/register';
 
       if (token) {
-        // Verify token with backend
-        fetch('http://localhost:3001/api/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        // Verify token with backend using axios instance
+        api.get('/api/profile', {
+          headers: { Authorization: `Bearer ${token}` }
         })
         .then(response => {
-          if (response.ok) {
+          if (response.status === 200) {
             setIsAuthenticated(true);
           } else {
             localStorage.removeItem('token');
