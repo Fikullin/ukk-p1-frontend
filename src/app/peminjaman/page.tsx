@@ -135,6 +135,8 @@ export default function PeminjamanPage() {
     }
   };
 
+}
+
   const handleView = (item: Peminjaman) => {
     setSelectedItem(item);
     setIsViewModalOpen(true);
@@ -289,6 +291,8 @@ export default function PeminjamanPage() {
       setValidatingId(null);
     }
   };
+
+// (moved earlier)
 
   return (
     <>
@@ -781,7 +785,7 @@ export default function PeminjamanPage() {
       )}
     </>
   );
-}
+
   // Handler untuk membuka modal validasi return
   const handleOpenReturnValidation = (item: Peminjaman) => {
     setSelectedReturnValidationItem(item);
