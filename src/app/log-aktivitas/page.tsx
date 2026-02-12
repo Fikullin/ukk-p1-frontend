@@ -155,6 +155,23 @@ export default function LogAktivitasPage() {
     }
   };
 
+  // Build pagination items with ellipsis if totalPages > 5
+  const getPaginationItems = (): (number | string)[] => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+    const items: (number | string)[] = [];
+
+    if (currentPage <= 3) {
+      items.push(1, 2, 3, 4, '...', totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      items.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      items.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+    }
+
+    return items;
+  };
+
   return (
     <>
       <Sidebar />
@@ -271,29 +288,39 @@ export default function LogAktivitasPage() {
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 bg-indigo-600 text-white rounded-lg disabled:bg-gray-300 hover:bg-indigo-700 transition-colors text-sm"
+                    className="px-2 py-0.5 bg-indigo-600 text-white rounded-md disabled:bg-gray-300 hover:bg-indigo-700 transition-colors text-xs"
                   >
                     ← Sebelumnya
                   </button>
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${
-                          currentPage === page
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                          {getPaginationItems().map((item, idx) => {
+                            if (item === '...') {
+                              return (
+                                <span key={`dots-${idx}`} className="px-2 py-0.5 text-xs text-gray-600">
+                                  ...
+                                </span>
+                              );
+                            }
+
+                            const pageNum = item as number;
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${
+                                  currentPage === pageNum
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}>
+                                {pageNum}
+                              </button>
+                            );
+                          })}
                   </div>
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1 bg-indigo-600 text-white rounded-lg disabled:bg-gray-300 hover:bg-indigo-700 transition-colors text-sm"
+                    className="px-2 py-0.5 bg-indigo-600 text-white rounded-md disabled:bg-gray-300 hover:bg-indigo-700 transition-colors text-xs"
                   >
                     Berikutnya →
                   </button>
