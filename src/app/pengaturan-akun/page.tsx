@@ -60,11 +60,15 @@ export default function PengaturanAkun() {
       });
 
       if (response.ok) {
-        const updatedUser = { ...user, nama: formNama };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setToast({ message: 'Nama berhasil diperbarui', type: 'success' });
-        setIsEditingNama(false);
+        if (user) {
+          const updatedUser: UserData = { ...user, nama: formNama } as UserData;
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setToast({ message: 'Nama berhasil diperbarui', type: 'success' });
+          setIsEditingNama(false);
+        } else {
+          setToast({ message: 'Gagal memperbarui nama: user tidak ditemukan', type: 'error' });
+        }
       } else {
         const data = await response.json();
         setToast({ message: data.error || 'Gagal memperbarui nama', type: 'error' });
