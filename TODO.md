@@ -1,4 +1,0 @@
-- [x] Test the validation process to ensure status updates correctly
-- [x] Verify frontend displays validated items as returned
-- [x] Add validation check to prevent invalid return validations
-- [x] Update frontend to immediately reflect status changes after validation
