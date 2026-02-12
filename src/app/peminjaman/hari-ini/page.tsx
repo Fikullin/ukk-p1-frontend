@@ -34,6 +34,7 @@ export default function PeminjamanHariIni() {
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('');
   const canManage = ['petugas', 'administrator', 'admin'].includes(userRole);
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
   
   const [selectedItem, setSelectedItem] = useState<Peminjaman | null>(null);
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
@@ -80,10 +81,11 @@ export default function PeminjamanHariIni() {
       try {
         const token = localStorage.getItem('token');
 
-        const response = await fetch('http://localhost:3001/api/peminjaman/hari-ini', {
+        const response = await fetch(`${API_BASE}/api/peminjaman/hari-ini`, {
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          credentials: 'include'
         });
 
         if (response.ok) {
@@ -165,7 +167,7 @@ export default function PeminjamanHariIni() {
     if (!selectedItem) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${selectedItem.id}`, {
+      const response = await fetch(`${API_BASE}/api/peminjaman/${selectedItem.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +196,7 @@ export default function PeminjamanHariIni() {
   const refreshPeminjamanData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/peminjaman/hari-ini', {
+      const response = await fetch(`${API_BASE}/api/peminjaman/hari-ini`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -235,7 +237,7 @@ export default function PeminjamanHariIni() {
 
       console.log(`[CONFIRM RETURN] Sending request with tanggal_kembali: ${tanggal_kembali}, jam_kembali: ${jam_kembali}`);
 
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${itemToReturn}/request-return`, {
+      const response = await fetch(`${API_BASE}/api/peminjaman/${itemToReturn}/request-return`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -289,7 +291,7 @@ export default function PeminjamanHariIni() {
 
     try {
       const today = new Date();
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${selectedReturnItem.id}/request-return`, {
+      const response = await fetch(`${API_BASE}/api/peminjaman/${selectedReturnItem.id}/request-return`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -341,7 +343,7 @@ export default function PeminjamanHariIni() {
     setValidatingId(selectedValidateItem.id);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/peminjaman/${selectedValidateItem.id}/validate`,
+        `${API_BASE}/api/peminjaman/${selectedValidateItem.id}/validate`,
         {
           method: 'POST',
           headers: {
@@ -394,7 +396,7 @@ export default function PeminjamanHariIni() {
     setValidatingId(selectedReturnValidationItem.id);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/peminjaman/${selectedReturnValidationItem.id}/validate-return`,
+        `${API_BASE}/api/peminjaman/${selectedReturnValidationItem.id}/validate-return`,
         {
           method: 'PUT',
           headers: {
