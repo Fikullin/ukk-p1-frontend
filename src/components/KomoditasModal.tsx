@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+interface Kategori {
+  id: number;
+  nama: string;
+}
 
 interface KomoditasModalProps {
   isOpen: boolean;
@@ -11,6 +16,7 @@ interface KomoditasModalProps {
     nama: string;
     deskripsi: string;
     jumlah_total: number;
+    kategori_id?: number | null;
   };
   isSubmitting?: boolean;
 }
@@ -27,20 +33,50 @@ export default function KomoditasModal({
     initialData || {
       nama: '',
       deskripsi: '',
-      jumlah_total: 0
+      jumlah_total: 0,
+      kategori_id: null
     }
   );
+
+  const [kategoriList, setKategoriList] = useState<Kategori[]>([]);
+  const [loadingKategori, setLoadingKategori] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchKategori();
+    }
+  }, [isOpen]);
+
+  const fetchKategori = async () => {
+    setLoadingKategori(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/kategori', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setKategoriList(data);
+      }
+    } catch (error) {
+      console.error('Error fetching kategori:', error);
+    } finally {
+      setLoadingKategori(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'jumlah_total' ? parseInt(value) || 0 : value
+      [name]: name === 'jumlah_total' ? parseInt(value) || 0 : (name === 'kategori_id' ? (value === '' ? null : parseInt(value)) : value)
     }));
   };
 
@@ -75,6 +111,27 @@ export default function KomoditasModal({
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
             />
+          </div>
+
+          {/* Kategori */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Kategori <span className="text-gray-400 text-xs">(Opsional)</span>
+            </label>
+            <select
+              name="kategori_id"
+              value={formData.kategori_id || ''}
+              onChange={handleChange}
+              disabled={loadingKategori}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition disabled:bg-gray-100"
+            >
+              <option value="">-- Pilih Kategori --</option>
+              {kategoriList.map((kategori) => (
+                <option key={kategori.id} value={kategori.id}>
+                  {kategori.nama}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Deskripsi */}

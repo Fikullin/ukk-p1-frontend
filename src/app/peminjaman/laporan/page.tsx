@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/Sidebar';
 import Toast from '../../../components/Toast';
+import * as XLSX from 'xlsx';
 
 interface LaporanData {
   bulan: string;
@@ -80,6 +81,73 @@ export default function LaporanPeminjaman() {
     return `${bulanNames[parseInt(bln) - 1]} ${tahun}`;
   };
 
+  const exportToExcel = () => {
+    if (data.length === 0) {
+      setToast({ message: 'Tidak ada data untuk diekspor', type: 'info' });
+      return;
+    }
+
+    try {
+      // Prepare data for Excel
+      const exportData = data.map((item) => {
+        const persentaseItem = item.total_peminjaman === 0 
+          ? 0 
+          : Math.round((item.dikembalikan / item.total_peminjaman) * 100);
+        
+        return {
+          'Bulan': formatDate(item.bulan),
+          'Total Peminjaman': item.total_peminjaman,
+          'Dikembalikan': item.dikembalikan,
+          'Belum Dikembalikan': item.belum_dikembalikan,
+          'Persentase Kembali (%)': persentaseItem
+        };
+      });
+
+      // Create workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Laporan Peminjaman');
+
+      // Add summary sheet
+      const totals = getTotalStats();
+      const summaryData = [
+        { 'Statistik': 'Total Peminjaman', 'Jumlah': totals.total_peminjaman },
+        { 'Statistik': 'Dikembalikan', 'Jumlah': totals.dikembalikan },
+        { 'Statistik': 'Belum Dikembalikan', 'Jumlah': totals.belum_dikembalikan },
+        { 'Statistik': 'Tingkat Pengembalian (%)', 'Jumlah': getPersentaseKembali() }
+      ];
+
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan');
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 },
+        { wch: 18 },
+        { wch: 15 },
+        { wch: 18 },
+        { wch: 20 }
+      ];
+
+      wsSummary['!cols'] = [
+        { wch: 25 },
+        { wch: 15 }
+      ];
+
+      // Generate filename with current date
+      const currentDate = new Date();
+      const dateString = currentDate.toLocaleDateString('id-ID').replace(/\//g, '-');
+      const filename = `Laporan_Peminjaman_${dateString}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+      setToast({ message: 'Laporan berhasil diekspor ke Excel', type: 'success' });
+    } catch (error) {
+      console.error('Export error:', error);
+      setToast({ message: 'Gagal mengekspor laporan', type: 'error' });
+    }
+  };
+
   const stats = getTotalStats();
   const persentase = getPersentaseKembali();
 
@@ -87,9 +155,22 @@ export default function LaporanPeminjaman() {
     <>
       <Sidebar />
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ml-64 p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Laporan Peminjaman</h1>
-          <p className="text-gray-600">Laporan statistik dan analisis peminjaman alat</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Laporan Peminjaman</h1>
+            <p className="text-gray-600">Laporan statistik dan analisis peminjaman alat</p>
+          </div>
+          <button
+            onClick={exportToExcel}
+            disabled={loading || data.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold rounded-lg shadow-md transition duration-300"
+            title="Ekspor laporan ke Excel"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 16v-4m0 0V8m0 4h4m-4 0H8M7 9h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V11a2 2 0 012-2z" />
+            </svg>
+            <span>Export Excel</span>
+          </button>
         </div>
 
         {loading ? (

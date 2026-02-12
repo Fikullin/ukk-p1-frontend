@@ -14,6 +14,8 @@ interface Komoditas {
   deskripsi: string;
   jumlah_total: number;
   jumlah_tersedia: number;
+  kategori_id: number | null;
+  kategori_nama?: string;
   created_at: string;
 }
 
@@ -33,7 +35,8 @@ export default function Komoditas() {
   const [formData, setFormData] = useState({
     nama: '',
     deskripsi: '',
-    jumlah_total: 0
+    jumlah_total: 0,
+    kategori_id: null as number | null
   });
 
   const [userRole, setUserRole] = useState<string>(() => {
@@ -88,7 +91,7 @@ export default function Komoditas() {
 
   const handleAdd = () => {
     setEditingTool(null);
-    setFormData({ nama: '', deskripsi: '', jumlah_total: 0 });
+    setFormData({ nama: '', deskripsi: '', jumlah_total: 0, kategori_id: null });
     setShowAddModal(true);
   };
 
@@ -124,7 +127,8 @@ export default function Komoditas() {
     setFormData({
       nama: tool.nama,
       deskripsi: tool.deskripsi,
-      jumlah_total: tool.jumlah_total
+      jumlah_total: tool.jumlah_total,
+      kategori_id: tool.kategori_id || null
     });
     setShowEditModal(true);
   };
@@ -281,7 +285,7 @@ export default function Komoditas() {
               {paginatedTools.map((tool) => (
                 <tr key={tool.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tool.nama}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.deskripsi || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.kategori_nama || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.jumlah_total}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.jumlah_tersedia}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -391,7 +395,7 @@ export default function Komoditas() {
         isEditing={false}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddSubmit}
-        initialData={{ nama: '', deskripsi: '', jumlah_total: 0 }}
+        initialData={{ nama: '', deskripsi: '', jumlah_total: 0, kategori_id: null }}
         isSubmitting={isSubmitting}
       />
 
@@ -404,7 +408,8 @@ export default function Komoditas() {
         initialData={editingTool ? {
           nama: editingTool.nama,
           deskripsi: editingTool.deskripsi,
-          jumlah_total: editingTool.jumlah_total
+          jumlah_total: editingTool.jumlah_total,
+          kategori_id: editingTool.kategori_id || null
         } : undefined}
         isSubmitting={isSubmitting}
       />

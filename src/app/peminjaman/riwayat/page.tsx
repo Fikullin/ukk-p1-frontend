@@ -23,6 +23,7 @@ export default function RiwayatPeminjaman() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('');
+  const canManage = ['petugas', 'administrator', 'admin'].includes(userRole);
   const [selectedItem, setSelectedItem] = useState<RiwayatPeminjaman | null>(null);
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -296,12 +297,14 @@ export default function RiwayatPeminjaman() {
             {error}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detail</th>
-                  {userRole !== 'siswa' && (
+                  {canManage && (
                     <>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Siswa</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alat</th>
@@ -312,7 +315,7 @@ export default function RiwayatPeminjaman() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                     </>
                   )}
-                  {userRole === 'siswa' && (
+                  { !canManage && (
                     <>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alat</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
@@ -358,7 +361,7 @@ export default function RiwayatPeminjaman() {
                               {item.jam_pinjam || '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.jam_kembali || '-'}
+                              {item.status === 'dikembalikan' ? (item.jam_kembali || '-') : '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {item.return_status === 'pending' ? (
@@ -374,28 +377,27 @@ export default function RiwayatPeminjaman() {
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
-                                <button onClick={() => handleView(item.id)} className="text-blue-600 hover:text-blue-800" title="View">
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                  </svg>
+                              <div className="flex gap-2">
+                                <button onClick={() => handleView(item.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition duration-200" title="Lihat Detail">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                 </button>
-                                <button onClick={() => handleEdit(item)} className="text-yellow-600 hover:text-yellow-800" title="Edit">
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                  </svg>
+                                <button onClick={() => handleEdit(item)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-600 hover:bg-amber-200 transition duration-200" title="Edit">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                 </button>
-                                <button onClick={() => item.return_status === 'pending' ? validateReturn(item.id) : setToast({ message: 'Barang sudah divalidasi', type: 'info' })} className={`${item.return_status === 'pending' ? 'text-green-600 hover:text-green-800' : 'text-gray-400 cursor-not-allowed'}`} disabled={item.return_status !== 'pending'} title={item.return_status === 'pending' ? 'Validasi pengembalian' : 'Sudah divalidasi'}>
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                </button>
+                                {item.return_status === 'pending' && (
+                                  <button
+                                    onClick={() => validateReturn(item.id)}
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition duration-200"
+                                    title="Validasi pengembalian"
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </>
                         )}
-                        {userRole === 'siswa' && (
+                        {!canManage && (
                           <>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {item.komoditas_nama}
@@ -407,7 +409,7 @@ export default function RiwayatPeminjaman() {
                               {item.jam_pinjam || '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {item.jam_kembali || '-'}
+                              {item.status === 'dikembalikan' ? (item.jam_kembali || '-') : '-'}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {item.return_status === 'pending' ? (
@@ -423,18 +425,20 @@ export default function RiwayatPeminjaman() {
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
-                                <button onClick={() => handleView(item.id)} className="text-blue-600 hover:text-blue-800" title="View">
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                  </svg>
+                              <div className="flex gap-2">
+                                <button onClick={() => handleView(item.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition duration-200" title="Lihat Detail">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                 </button>
-                                <button onClick={() => item.status === 'dipinjam' ? handleOpenReturnModal(item) : (item.status === 'menunggu' ? setToast({ message: 'Peminjaman belum divalidasi oleh petugas', type: 'info' }) : setToast({ message: 'Barang sudah dikembalikan', type: 'info' }))} className={`${item.status === 'dipinjam' ? 'text-orange-600 hover:text-orange-800' : 'text-gray-400 cursor-not-allowed'}`} disabled={item.status !== 'dipinjam'} title={item.status === 'dipinjam' ? 'Ajukan pengembalian' : item.status === 'menunggu' ? 'Menunggu validasi petugas' : 'Sudah dikembalikan'}>
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                </button>
+                                {(item.status === 'menunggu' || item.status === 'dipinjam') && (
+                                  <button 
+                                    onClick={() => item.status === 'dipinjam' ? handleOpenReturnModal(item) : setToast({ message: 'Peminjaman belum divalidasi oleh petugas', type: 'info' })}
+                                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg transition duration-200 ${item.status === 'dipinjam' ? 'bg-cyan-100 text-cyan-600 hover:bg-cyan-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                    disabled={item.status !== 'dipinjam'}
+                                    title={item.status === 'dipinjam' ? 'Ajukan pengembalian' : 'Menunggu validasi petugas'}
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </>
@@ -458,8 +462,8 @@ export default function RiwayatPeminjaman() {
                                 <div className="space-y-1 text-sm text-gray-600">
                                   <p><strong>Tanggal Pinjam:</strong> {new Date(item.tanggal_pinjam).toLocaleDateString('id-ID')}</p>
                                   <p><strong>Jam Pinjam:</strong> {item.jam_pinjam || '-'}</p>
-                                  <p><strong>Tanggal Kembali:</strong> {item.tanggal_kembali ? new Date(item.tanggal_kembali).toLocaleDateString('id-ID') : '-'}</p>
-                                  <p><strong>Jam Kembali:</strong> {item.jam_kembali || '-'}</p>
+                                  <p><strong>Tanggal Kembali:</strong> {item.status === 'dikembalikan' ? (item.tanggal_kembali ? new Date(item.tanggal_kembali).toLocaleDateString('id-ID') : '-') : '-'}</p>
+                                  <p><strong>Jam Kembali:</strong> {item.status === 'dikembalikan' ? (item.jam_kembali || '-') : '-'}</p>
                                 </div>
                               </div>
                             </div>
@@ -471,6 +475,7 @@ export default function RiwayatPeminjaman() {
                 )}
               </tbody>
             </table>
+              </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -512,6 +517,7 @@ export default function RiwayatPeminjaman() {
               </div>
             )}
           </div>
+          </div>
         )}
 
         {/* View Modal */}
@@ -527,8 +533,8 @@ export default function RiwayatPeminjaman() {
                     <strong>Nama Siswa:</strong> {selectedItem.user_nama}<br />
                     <strong>Tanggal Pinjam:</strong> {new Date(selectedItem.tanggal_pinjam).toLocaleDateString('id-ID')}<br />
                     <strong>Jam Pinjam:</strong> {selectedItem.jam_pinjam || '-'}<br />
-                    <strong>Tanggal Kembali:</strong> {selectedItem.tanggal_kembali ? new Date(selectedItem.tanggal_kembali).toLocaleDateString('id-ID') : '-'}<br />
-                    <strong>Jam Kembali:</strong> {selectedItem.jam_kembali || '-'}<br />
+                    <strong>Tanggal Kembali:</strong> {selectedItem.status === 'dikembalikan' ? (selectedItem.tanggal_kembali ? new Date(selectedItem.tanggal_kembali).toLocaleDateString('id-ID') : '-') : '-'}<br />
+                    <strong>Jam Kembali:</strong> {selectedItem.status === 'dikembalikan' ? (selectedItem.jam_kembali || '-') : '-'}<br />
                     <strong>Petugas:</strong> {selectedItem.petugas_nama || '-'}<br />
                     <strong>Status:</strong> {selectedItem.status}<br />
                     <strong>Jumlah Pinjam:</strong> {selectedItem.jumlah_pinjam}

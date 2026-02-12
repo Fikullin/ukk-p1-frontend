@@ -20,6 +20,7 @@ interface Denda {
   tanggal_pinjam: string;
   deadline: string;
   tanggal_kembali: string;
+  status: string;
   created_at: string;
 }
 
@@ -48,6 +49,9 @@ export default function DaftarDenda() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedDenda, setSelectedDenda] = useState<Denda | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -103,15 +107,25 @@ export default function DaftarDenda() {
   const paginatedDenda = dendaList.slice(startIndex, endIndex);
 
   const getStatusBadge = (status: string) => {
-    return status === 'sudah_dibayar' ? (
-      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-        ✓ Sudah Dibayar
-      </span>
-    ) : (
-      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-        ⚠ Belum Dibayar
-      </span>
-    );
+    if (status === 'sudah_dibayar') {
+      return (
+        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+          ✓ Sudah Dibayar
+        </span>
+      );
+    } else if (status === 'menunggu_validasi') {
+      return (
+        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+          ⏳ Menunggu Validasi
+        </span>
+      );
+    } else {
+      return (
+        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+          ⚠ Belum Dibayar
+        </span>
+      );
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -124,6 +138,41 @@ export default function DaftarDenda() {
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('id-ID');
+  };
+
+  const handlePayment = async () => {
+    if (!selectedDenda) return;
+
+    setPaymentLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3001/api/denda/${selectedDenda.id}/bayar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setToast({ message: data.message || 'Pembayaran denda berhasil!', type: 'success' });
+        setIsPaymentModalOpen(false);
+        setSelectedDenda(null);
+        // Refresh denda list
+        if (userId) {
+          fetchDendaData(userId);
+        }
+      } else {
+        const error = await response.json();
+        setToast({ message: error.error || 'Gagal memproses pembayaran', type: 'error' });
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setToast({ message: 'Gagal memproses pembayaran', type: 'error' });
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
   return (
@@ -230,7 +279,8 @@ export default function DaftarDenda() {
             ) : (
               <>
                 <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <table className="w-full">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
@@ -241,6 +291,7 @@ export default function DaftarDenda() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rincian Denda</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Denda</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -259,7 +310,7 @@ export default function DaftarDenda() {
                             {formatDate(denda.deadline)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(denda.tanggal_kembali)}
+                            {denda.tanggal_kembali ? formatDate(denda.tanggal_kembali) : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="space-y-1 text-xs">
@@ -291,10 +342,26 @@ export default function DaftarDenda() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             {getStatusBadge(denda.status_pembayaran)}
                           </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {denda.status_pembayaran === 'belum_dibayar' ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedDenda(denda);
+                                  setIsPaymentModalOpen(true);
+                                }}
+                                className="px-3 py-1 bg-blue-500 text-white text-xs font-medium rounded hover:bg-blue-600 transition-colors"
+                              >
+                                Bayar
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-500">-</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 {/* Pagination */}
@@ -338,6 +405,75 @@ export default function DaftarDenda() {
                 )}
               </>
             )}
+          </>
+        )}
+
+        {/* Payment Modal */}
+        {isPaymentModalOpen && selectedDenda && (
+          <>
+            <div className="fixed inset-0 backdrop-blur-sm" onClick={() => !paymentLoading && setIsPaymentModalOpen(false)}></div>
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-5">
+                  <h3 className="text-xl font-bold text-white">Konfirmasi Pembayaran Denda</h3>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-2"><strong>Barang:</strong> {selectedDenda.komoditas_nama}</p>
+                    <p className="text-sm text-gray-600 mb-2"><strong>Total Denda:</strong> <span className="text-lg font-bold text-blue-600">{formatCurrency(selectedDenda.total_denda)}</span></p>
+                    <div className="mt-3 space-y-1 text-xs text-gray-600">
+                      {selectedDenda.denda_keterlambatan > 0 && (
+                        <p>• Keterlambatan: {formatCurrency(selectedDenda.denda_keterlambatan)}</p>
+                      )}
+                      {selectedDenda.denda_kerusakan > 0 && (
+                        <p>• Kerusakan: {formatCurrency(selectedDenda.denda_kerusakan)}</p>
+                      )}
+                      {selectedDenda.denda_hilang > 0 && (
+                        <p>• Kehilangan: {formatCurrency(selectedDenda.denda_hilang)}</p>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700">Apakah Anda yakin ingin melakukan pembayaran denda? Pembayaran tidak dapat dibatalkan.</p>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-xs text-yellow-800"><strong>⚠️ Perhatian:</strong> Pembayaran akan ditinjau oleh petugas untuk validasi.</p>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="border-t px-6 py-4 flex gap-3">
+                  <button
+                    onClick={() => setIsPaymentModalOpen(false)}
+                    disabled={paymentLoading}
+                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handlePayment}
+                    disabled={paymentLoading}
+                    className="flex-1 px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {paymentLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Memproses...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Bayar Sekarang
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           </>
         )}
 

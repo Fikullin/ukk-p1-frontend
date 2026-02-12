@@ -62,6 +62,118 @@ export default function Sidebar() {
     localStorage.setItem('isManajemenAkunOpen', JSON.stringify(newState));
   };
 
+  // Notifications (for siswa)
+  const [notifCount, setNotifCount] = useState<number>(0);
+  const [dueSoonCount, setDueSoonCount] = useState<number>(0);
+  const [newValidatedCount, setNewValidatedCount] = useState<number>(0);
+  const [showNotifPanel, setShowNotifPanel] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        if (userRole !== 'siswa') return;
+        const token = localStorage.getItem('token');
+        
+        // Apply automatic overdue fines
+        try {
+          await fetch('http://localhost:3001/api/peminjaman/apply-overdue-fines', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (fineErr) {
+          console.log('Fine application skipped:', fineErr);
+        }
+
+        const res = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const today = new Date();
+        const seenKeys: string[] = JSON.parse(localStorage.getItem('seenNotifKeys') || '[]');
+
+        const notifs: any[] = [];
+
+        data.forEach((item: any) => {
+          // validated peminjaman by petugas (peminjaman approved)
+          if (item.status === 'dipinjam' && item.validated_by) {
+            const key = `validated-${item.id}`;
+            notifs.push({
+              key,
+              type: 'validated',
+              peminjamanId: item.id,
+              message: `Peminjaman ${item.komoditas_nama} telah divalidasi. Deadline: ${item.deadline || '-'}.`,
+              date: item.deadline || item.tanggal_pinjam,
+              seen: seenKeys.includes(key)
+            });
+          }
+
+          // return validated by petugas
+          if (item.return_status === 'validated') {
+            const key = `return-validated-${item.id}`;
+            notifs.push({
+              key,
+              type: 'return_validated',
+              peminjamanId: item.id,
+              message: `Pengembalian ${item.komoditas_nama} telah divalidasi oleh petugas.`,
+              date: item.tanggal_kembali || item.created_at,
+              seen: seenKeys.includes(key)
+            });
+          }
+
+          // due soon (<= 3 days)
+          if (item.status === 'dipinjam' && item.deadline) {
+            const dl = new Date(item.deadline + 'T00:00:00');
+            const todayMid = new Date();
+            todayMid.setHours(0,0,0,0);
+            const diff = Math.floor((dl.getTime() - todayMid.getTime()) / (1000 * 60 * 60 * 24));
+            if (diff <= 3 && diff >= 0) {
+              const key = `due-${item.id}`;
+              notifs.push({
+                key,
+                type: 'due_soon',
+                peminjamanId: item.id,
+                message: `Peminjaman ${item.komoditas_nama} akan jatuh tempo pada ${item.deadline}.`,
+                date: item.deadline,
+                seen: seenKeys.includes(key)
+              });
+            }
+
+            // overdue -> possible fine
+            if (diff < 0) {
+              const key = `overdue-${item.id}`;
+              notifs.push({
+                key,
+                type: 'overdue',
+                peminjamanId: item.id,
+                message: `Peminjaman ${item.komoditas_nama} sudah melewati tenggat (${item.deadline}) — periksa daftar denda.`,
+                date: item.deadline,
+                seen: seenKeys.includes(key)
+              });
+            }
+          }
+        });
+
+        // dedupe by key
+        const deduped = Array.from(new Map(notifs.map(n => [n.key, n])).values());
+
+        setNotifications(deduped);
+        const unseenCount = deduped.filter(n => !n.seen).length;
+        setNotifCount(unseenCount);
+        setDueSoonCount(deduped.filter(n => n.type === 'due_soon' && !n.seen).length);
+        setNewValidatedCount(deduped.filter(n => (n.type === 'validated' || n.type === 'return_validated') && !n.seen).length);
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    fetchNotifications();
+    const t = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(t);
+  }, [userRole]);
+
   const isActive = (href: string) => {
     if (href === '/beranda') return pathname === '/beranda';
     if (href === '/komoditas') return pathname === '/komoditas';
@@ -96,10 +208,163 @@ export default function Sidebar() {
       {/* User Info Header */}
       {userRole && (
         <div className="sticky top-0 px-4 py-4 bg-gradient-to-r from-indigo-100 to-blue-100 border-b-2 border-indigo-200">
-          <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Pengguna</p>
-          <p className="text-sm font-bold text-slate-900 mt-2 truncate">{userName}</p>
-          <div className="mt-2 inline-block px-2.5 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-full">
-            {getRoleLabel()}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Pengguna</p>
+              <p className="text-sm font-bold text-slate-900 mt-2 truncate">{userName}</p>
+              <div className="mt-2 inline-block px-2.5 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-full">
+                {getRoleLabel()}
+              </div>
+            </div>
+
+            {/* Notification bell for siswa */}
+            {userRole === 'siswa' && (
+              <div className="ml-2 flex-shrink-0 relative">
+                <button
+                  onClick={() => setShowNotifPanel(prev => !prev)}
+                  title="Notifikasi"
+                  className="relative p-2 rounded-md hover:bg-slate-200"
+                >
+                  <svg className="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
+                  </svg>
+                  {notifCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
+                      {notifCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification panel */}
+                {showNotifPanel && (
+                  <div className="fixed left-64 top-16 w-96 bg-white rounded-xl shadow-2xl z-[9999] overflow-hidden border border-slate-200">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-lg font-bold text-white">Notifikasi</h2>
+                          <p className="text-indigo-100 text-xs mt-1">{notifCount} notifikasi baru</p>
+                        </div>
+                        <button 
+                          onClick={() => setShowNotifPanel(false)}
+                          className="text-indigo-100 hover:text-white transition"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notifications list */}
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 px-4">
+                          <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
+                          </svg>
+                          <p className="text-slate-500 text-sm font-medium">Tidak ada notifikasi</p>
+                          <p className="text-slate-400 text-xs mt-1">Anda sudah update dengan semua informasi</p>
+                        </div>
+                      )}
+                      {notifications.map((n) => {
+                        const getNotifIcon = (type: string) => {
+                          switch(type) {
+                            case 'validated':
+                              return <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg>;
+                            case 'return_validated':
+                              return <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>;
+                            case 'due_soon':
+                              return <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" /></svg>;
+                            case 'overdue':
+                              return <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" /></svg>;
+                            default:
+                              return <svg className="w-5 h-5 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" /></svg>;
+                          }
+                        };
+
+                        const getNotifColor = (type: string) => {
+                          switch(type) {
+                            case 'validated':
+                              return 'bg-green-50 border-l-4 border-green-500';
+                            case 'return_validated':
+                              return 'bg-blue-50 border-l-4 border-blue-500';
+                            case 'due_soon':
+                              return 'bg-amber-50 border-l-4 border-amber-500';
+                            case 'overdue':
+                              return 'bg-red-50 border-l-4 border-red-500';
+                            default:
+                              return 'bg-slate-50 border-l-4 border-slate-300';
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={n.key}
+                            onClick={() => {
+                              // mark as read
+                              try {
+                                const seen: string[] = JSON.parse(localStorage.getItem('seenNotifKeys') || '[]');
+                                if (!seen.includes(n.key)) {
+                                  seen.push(n.key);
+                                  localStorage.setItem('seenNotifKeys', JSON.stringify(seen));
+                                }
+                              } catch (_) {}
+                              // update local state
+                              setNotifications(prev => prev.map(p => p.key === n.key ? { ...p, seen: true } : p));
+                              setNotifCount(prev => Math.max(0, prev - (n.seen ? 0 : 1)));
+                              // navigate based on type
+                              if (n.type === 'overdue') router.push('/daftar-denda');
+                              else router.push('/peminjaman/riwayat');
+                              setShowNotifPanel(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:shadow-md transition-all duration-150 border-b border-slate-100 ${getNotifColor(n.type)} ${!n.seen ? 'font-semibold' : ''}`}
+                          >
+                            <div className="flex gap-3">
+                              <div className="flex-shrink-0 mt-0.5">
+                                {getNotifIcon(n.type)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm ${!n.seen ? 'text-slate-900' : 'text-slate-700'}`}>{n.message}</p>
+                                <p className="text-xs text-slate-500 mt-1">{n.date}</p>
+                              </div>
+                              {!n.seen && (
+                                <div className="flex-shrink-0 w-2 h-2 bg-indigo-600 rounded-full mt-1.5"></div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Footer */}
+                    {notifications.length > 0 && (
+                      <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 flex items-center justify-between">
+                        <button
+                          onClick={() => {
+                            try {
+                              const keys = notifications.map(n => n.key);
+                              localStorage.setItem('seenNotifKeys', JSON.stringify(keys));
+                            } catch (_) {}
+                            setNotifications(prev => prev.map(p => ({ ...p, seen: true })));
+                            setNotifCount(0);
+                          }}
+                          className="text-xs font-medium text-indigo-600 hover:text-indigo-700 transition rounded px-2 py-1 hover:bg-indigo-50"
+                        >
+                          Tandai semua dibaca
+                        </button>
+                        <a
+                          href="/peminjaman/riwayat"
+                          className="text-xs font-medium text-slate-600 hover:text-indigo-600 transition rounded px-2 py-1 hover:bg-slate-200"
+                        >
+                          Lihat semua →
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -135,6 +400,23 @@ export default function Sidebar() {
           </svg>
           <span>Daftar Alat</span>
         </a>
+
+        {/* Kategori - Only for admin and petugas */}
+        {(userRole === 'petugas' || userRole === 'administrator') && (
+          <a
+            href="/kategori"
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+              isActive('/kategori')
+                ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                : 'text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <span>Kategori</span>
+          </a>
+        )}
 
         {/* Peminjaman Dropdown */}
         <div>
@@ -198,6 +480,18 @@ export default function Sidebar() {
                   }`}
                 >
                   Laporan
+                </a>
+              )}
+              {(userRole === 'petugas' || userRole === 'administrator') && (
+                <a
+                  href="/validasi-pembayaran-denda"
+                  className={`flex px-3 py-2 text-sm rounded-md transition-all duration-200 ${
+                    pathname === '/validasi-pembayaran-denda'
+                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Validasi Pembayaran Denda
                 </a>
               )}
             </div>

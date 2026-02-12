@@ -1,12 +1,12 @@
-  "use client";
+"use client";
 
 import React, { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
-import Sidebar from '../../../components/Sidebar';
-import ConfirmModal from '../../../components/ConfirmModal';
-import Toast from '../../../components/Toast';
-import ValidatePeminjamanModal from '../../../components/ValidatePeminjamanModal';
-import ReturnValidationModal from '../../../components/ReturnValidationModal';
+import Sidebar from '../../components/Sidebar';
+import ConfirmModal from '../../components/ConfirmModal';
+import Toast from '../../components/Toast';
+import ValidatePeminjamanModal from '../../components/ValidatePeminjamanModal';
+import ReturnValidationModal from '../../components/ReturnValidationModal';
 
 interface Peminjaman {
   id: number;
@@ -27,7 +27,7 @@ interface Peminjaman {
   validated_by?: number;
 }
 
-export default function PeminjamanHariIni() {
+export default function PeminjamanPage() {
   const router = useRouter();
   const [peminjaman, setPeminjaman] = useState<Peminjaman[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,18 +69,13 @@ export default function PeminjamanHariIni() {
     }
   }, []);
 
-  // Monitor role changes
-  useEffect(() => {
-    console.log('[ROLE_CHANGED] userRole:', userRole, 'canManage:', canManage);
-  }, [userRole, canManage]);
-
   // Fetch peminjaman data
   useEffect(() => {
     const fetchPeminjaman = async () => {
       try {
         const token = localStorage.getItem('token');
 
-        const response = await fetch('http://localhost:3001/api/peminjaman/hari-ini', {
+        const response = await fetch('http://localhost:3001/api/peminjaman', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -88,7 +83,6 @@ export default function PeminjamanHariIni() {
 
         if (response.ok) {
           const data = await response.json();
-          console.log('[INITIAL LOAD] Loaded peminjaman:', data);
           setPeminjaman(data);
         } else if (response.status === 401 || response.status === 403) {
           localStorage.removeItem('token');
@@ -106,10 +100,6 @@ export default function PeminjamanHariIni() {
     };
 
     fetchPeminjaman();
-    
-    // Set up auto-refresh every 3 seconds for real-time updates
-    const interval = setInterval(fetchPeminjaman, 3000);
-    return () => clearInterval(interval);
   }, []);
 
   // Pagination logic
@@ -124,21 +114,15 @@ export default function PeminjamanHariIni() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'menunggu':
-        return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-            ⏳ Menunggu
-          </span>
-        );
       case 'dipinjam':
         return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
             Dipinjam
           </span>
         );
       case 'dikembalikan':
         return (
-          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
             Dikembalikan
           </span>
         );
@@ -157,7 +141,7 @@ export default function PeminjamanHariIni() {
   };
 
   const handleEdit = (item: Peminjaman) => {
-    setSelectedItem(item);
+    setSelectedItem({ ...item });
     setIsEditModalOpen(true);
   };
 
@@ -177,105 +161,26 @@ export default function PeminjamanHariIni() {
       });
 
       if (response.ok) {
-        setToast({ message: 'Data berhasil diperbarui', type: 'success' });
+        setToast({
+          message: 'Peminjaman berhasil diperbarui',
+          type: 'success'
+        });
         setIsEditModalOpen(false);
-        // Refresh data
-        await new Promise(resolve => setTimeout(resolve, 300));
-        await refreshPeminjamanData();
+        const updatedPeminjaman = peminjaman.map(p =>
+          p.id === selectedItem.id ? selectedItem : p
+        );
+        setPeminjaman(updatedPeminjaman);
       } else {
-        const data = await response.json();
-        setToast({ message: data.error || 'Gagal memperbarui data', type: 'error' });
+        setToast({
+          message: 'Gagal memperbarui peminjaman',
+          type: 'error'
+        });
       }
-    } catch (_error) {
-      setToast({ message: 'Terjadi kesalahan koneksi', type: 'error' });
-    }
-  };
-
-  const refreshPeminjamanData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/peminjaman/hari-ini', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[REFRESH DATA] Fresh data from server:', data);
-        setPeminjaman(data);
-        return true;
-      }
-      return false;
     } catch (err) {
-      console.error('Error refreshing peminjaman data:', err);
-      return false;
-    }
-  };
-
-  const handleReturn = async (id: number) => {
-    setItemToReturn(id);
-    setShowReturnConfirm(true);
-  };
-
-  const validateReturn = async (id: number) => {
-    setItemToReturn(id);
-    setShowReturnConfirm(true);
-  };
-
-  const confirmReturn = async () => {
-    if (itemToReturn === null) return;
-
-    console.log(`[CONFIRM RETURN] Starting validation for item ID: ${itemToReturn}`);
-
-    try {
-      const now = new Date();
-      const tanggal_kembali = now.toISOString().split('T')[0];
-      const jam_kembali = now.toTimeString().split(' ')[0];
-
-      console.log(`[CONFIRM RETURN] Sending request with tanggal_kembali: ${tanggal_kembali}, jam_kembali: ${jam_kembali}`);
-
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${itemToReturn}/request-return`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          tanggal_kembali,
-          jam_kembali
-        })
+      setToast({
+        message: 'Terjadi kesalahan koneksi',
+        type: 'error'
       });
-
-      const responseData = await response.json();
-      console.log(`[CONFIRM RETURN] Response status: ${response.status}, data:`, responseData);
-
-      if (response.ok) {
-        setToast({ message: 'Pengembalian berhasil divalidasi', type: 'success' });
-        
-        // Immediately update the local state with the validated status
-        console.log(`[CONFIRM RETURN] Updating local state for item ${itemToReturn}`);
-        setPeminjaman(prev => prev.map(item =>
-          item.id === itemToReturn
-            ? { ...item, status: 'dikembalikan', return_status: 'validated', tanggal_kembali, jam_kembali }
-            : item
-        ));
-
-        // Then refresh from server after a delay to ensure DB is updated
-        console.log(`[CONFIRM RETURN] Waiting 500ms before refreshing from server...`);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        console.log(`[CONFIRM RETURN] Refreshing from server...`);
-        await refreshPeminjamanData();
-      } else {
-        setToast({ message: responseData.error || 'Gagal memvalidasi pengembalian', type: 'error' });
-      }
-    } catch (_error) {
-      console.error('[CONFIRM RETURN] Error:', _error);
-      setToast({ message: 'Terjadi kesalahan koneksi', type: 'error' });
-    } finally {
-      setShowReturnConfirm(false);
-      setItemToReturn(null);
     }
   };
 
@@ -288,31 +193,34 @@ export default function PeminjamanHariIni() {
     if (!selectedReturnItem) return;
 
     try {
-      const today = new Date();
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${selectedReturnItem.id}/request-return`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          tanggal_rencana_kembali: today.toISOString().split('T')[0],
-          jam_rencana_kembali: today.toTimeString().split(' ')[0]
-        })
-      });
+      const response = await fetch(
+        `http://localhost:3001/api/peminjaman/${selectedReturnItem.id}/return-request`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
 
       if (response.ok) {
-        setToast({ message: 'Permintaan pengembalian berhasil dikirim ke petugas', type: 'success' });
-        // Wait a moment then refresh data
-        await new Promise(resolve => setTimeout(resolve, 300));
-        await refreshPeminjamanData();
+        setToast({
+          message: 'Permintaan pengembalian berhasil dikirim',
+          type: 'success'
+        });
+        const updatedPeminjaman = peminjaman.map(p =>
+          p.id === selectedReturnItem.id
+            ? { ...p, status: 'dikembalikan', return_status: 'pending' }
+            : p
+        );
+        setPeminjaman(updatedPeminjaman);
       } else {
-        try {
-          const data = await response.json();
-          setToast({ message: data.error || 'Gagal mengirim permintaan pengembalian', type: 'error' });
-        } catch {
-          setToast({ message: `Error: ${response.status} ${response.statusText}`, type: 'error' });
-        }
+        const errorData = await response.json();
+        setToast({
+          message: errorData.error || 'Gagal mengirim permintaan pengembalian',
+          type: 'error'
+        });
       }
     } catch (err) {
       console.error('Return request error:', err);
@@ -359,74 +267,16 @@ export default function PeminjamanHariIni() {
         });
         setIsValidatePeminjamanOpen(false);
         setSelectedValidateItem(null);
-        await refreshPeminjamanData();
+        const updatedPeminjaman = peminjaman.map(p =>
+          p.id === selectedValidateItem.id
+            ? { ...p, deadline: data.deadline, validated_by: 1 }
+            : p
+        );
+        setPeminjaman(updatedPeminjaman);
       } else {
         const errorData = await response.json();
         setToast({
           message: errorData.error || 'Gagal memvalidasi peminjaman',
-          type: 'error'
-        });
-      }
-    } catch (err) {
-      setToast({
-        message: 'Terjadi kesalahan koneksi',
-        type: 'error'
-      });
-    } finally {
-      setValidatingId(null);
-    }
-  };
-
-  // Handler untuk membuka modal validasi return
-  const handleOpenReturnValidation = (item: Peminjaman) => {
-    setSelectedReturnValidationItem(item);
-    setIsReturnValidationOpen(true);
-  };
-
-  // Handler submit validasi return
-  const handleValidateReturnSubmit = async (data: {
-    tanggal_kembali: string;
-    jam_kembali?: string;
-    kondisi_barang: 'baik' | 'rusak' | 'hilang';
-  }) => {
-    if (!selectedReturnValidationItem) return;
-
-    setValidatingId(selectedReturnValidationItem.id);
-    try {
-      const response = await fetch(
-        `http://localhost:3001/api/peminjaman/${selectedReturnValidationItem.id}/validate-return`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            tanggal_kembali: data.tanggal_kembali,
-            jam_kembali: data.jam_kembali || null,
-            kondisi_barang: data.kondisi_barang
-          })
-        }
-      );
-
-      if (response.ok) {
-        const responseData = await response.json();
-        const denda = responseData.denda;
-        let message = `Pengembalian berhasil divalidasi - Kondisi: ${data.kondisi_barang}`;
-        if (denda.totalFine > 0) {
-          message += ` - Denda: Rp ${denda.totalFine.toLocaleString('id-ID')}`;
-        }
-        setToast({
-          message,
-          type: 'success'
-        });
-        setIsReturnValidationOpen(false);
-        setSelectedReturnValidationItem(null);
-        await refreshPeminjamanData();
-      } else {
-        const errorData = await response.json();
-        setToast({
-          message: errorData.error || 'Gagal memvalidasi pengembalian',
           type: 'error'
         });
       }
@@ -446,12 +296,12 @@ export default function PeminjamanHariIni() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {userRole === 'siswa' ? 'Peminjaman Saya Hari Ini' : 'Peminjaman Hari Ini'}
+            {userRole === 'siswa' ? 'Peminjaman Saya' : 'Data Peminjaman'}
           </h1>
           <p className="text-gray-600">
             {userRole === 'siswa'
-              ? 'Daftar peminjaman Anda yang terjadi hari ini'
-              : 'Daftar peminjaman yang terjadi hari ini'
+              ? 'Daftar semua peminjaman Anda'
+              : 'Daftar semua peminjaman di sistem'
             }
           </p>
         </div>
@@ -500,8 +350,8 @@ export default function PeminjamanHariIni() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {peminjaman.length === 0 ? (
                   <tr>
-                    <td colSpan={canManage ? 9 : 8} className="px-6 py-4 text-center text-gray-500">
-                      Tidak ada data peminjaman hari ini
+                    <td colSpan={userRole === 'siswa' ? 8 : 9} className="px-6 py-4 text-center text-gray-500">
+                      Tidak ada data peminjaman
                     </td>
                   </tr>
                 ) : (
@@ -538,9 +388,18 @@ export default function PeminjamanHariIni() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               {item.return_status === 'pending' ? (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                  ⏳ Menunggu
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    ⏳ Menunggu
+                                  </span>
+                                  <button
+                                    onClick={() => handleOpenReturnValidation(item)}
+                                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition duration-200"
+                                    title="Validasi pengembalian dengan kondisi barang"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                  </button>
+                                </div>
                               ) : item.return_status === 'validated' ? (
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                   ✓ Divalidasi
@@ -615,11 +474,7 @@ export default function PeminjamanHariIni() {
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                 </button>
                                 {item.status === 'dipinjam' && (
-                                  <button 
-                                    onClick={() => handleStudentReturnRequest(item)} 
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 text-cyan-600 hover:bg-cyan-200 transition duration-200" 
-                                    title="Kembalikan barang"
-                                  >
+                                  <button onClick={() => handleStudentReturnRequest(item)} className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-100 text-cyan-600 hover:bg-cyan-200 transition duration-200" title="Kembalikan barang">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                   </button>
                                 )}
@@ -883,7 +738,7 @@ export default function PeminjamanHariIni() {
         isOpen={showReturnConfirm}
         title="Validasi Pengembalian"
         message="Apakah Anda yakin ingin memvalidasi pengembalian barang ini?"
-        onConfirm={confirmReturn}
+        onConfirm={() => {}}
         onCancel={() => {
           setShowReturnConfirm(false);
           setItemToReturn(null);
@@ -927,3 +782,70 @@ export default function PeminjamanHariIni() {
     </>
   );
 }
+  // Handler untuk membuka modal validasi return
+  const handleOpenReturnValidation = (item: Peminjaman) => {
+    setSelectedReturnValidationItem(item);
+    setIsReturnValidationOpen(true);
+  };
+
+  // Handler submit validasi return
+  const handleValidateReturnSubmit = async (data: {
+    tanggal_kembali: string;
+    jam_kembali?: string;
+    kondisi_barang: 'baik' | 'rusak' | 'hilang';
+  }) => {
+    if (!selectedReturnValidationItem) return;
+
+    setValidatingId(selectedReturnValidationItem.id);
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/peminjaman/${selectedReturnValidationItem.id}/validate-return`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            tanggal_kembali: data.tanggal_kembali,
+            jam_kembali: data.jam_kembali || null,
+            kondisi_barang: data.kondisi_barang
+          })
+        }
+      );
+
+      if (response.ok) {
+        const responseData = await response.json();
+        const denda = responseData.denda;
+        let message = `Pengembalian berhasil divalidasi - Kondisi: ${data.kondisi_barang}`;
+        if (denda.totalFine > 0) {
+          message += ` - Denda: Rp ${denda.totalFine.toLocaleString('id-ID')}`;
+        }
+        setToast({
+          message,
+          type: 'success'
+        });
+        setIsReturnValidationOpen(false);
+        setSelectedReturnValidationItem(null);
+        const updatedPeminjaman = peminjaman.map(p =>
+          p.id === selectedReturnValidationItem.id
+            ? { ...p, return_status: 'validated' }
+            : p
+        );
+        setPeminjaman(updatedPeminjaman);
+      } else {
+        const errorData = await response.json();
+        setToast({
+          message: errorData.error || 'Gagal memvalidasi pengembalian',
+          type: 'error'
+        });
+      }
+    } catch (err) {
+      setToast({
+        message: 'Terjadi kesalahan koneksi',
+        type: 'error'
+      });
+    } finally {
+      setValidatingId(null);
+    }
+  };
