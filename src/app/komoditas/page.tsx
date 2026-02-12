@@ -15,6 +15,8 @@ interface Komoditas {
   jumlah_total: number;
   jumlah_tersedia: number;
   created_at: string;
+  kategori_id?: number | null;
+  kategori_nama?: string | null;
 }
 
 export default function Komoditas() {
@@ -124,7 +126,8 @@ export default function Komoditas() {
     setFormData({
       nama: tool.nama,
       deskripsi: tool.deskripsi,
-      jumlah_total: tool.jumlah_total
+      jumlah_total: tool.jumlah_total,
+      kategori_id: tool.kategori_id || null
     });
     setShowEditModal(true);
   };
@@ -281,7 +284,7 @@ export default function Komoditas() {
               {paginatedTools.map((tool) => (
                 <tr key={tool.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{tool.nama}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.deskripsi || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.kategori_nama || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.jumlah_total}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tool.jumlah_tersedia}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface KomoditasModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ interface KomoditasModalProps {
     nama: string;
     deskripsi: string;
     jumlah_total: number;
+    kategori_id?: number | null;
   };
   isSubmitting?: boolean;
 }
@@ -27,9 +28,45 @@ export default function KomoditasModal({
     initialData || {
       nama: '',
       deskripsi: '',
-      jumlah_total: 0
+      jumlah_total: 0,
+      kategori_id: null
     }
   );
+
+  const [categories, setCategories] = useState<Array<{ id: number; nama: string }>>([]);
+
+  useEffect(() => {
+    // fetch categories for select
+    const fetchCategories = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const res = await fetch('http://localhost:3001/api/kategori', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(data || []);
+        }
+      } catch (err) {
+        // ignore silently
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        nama: initialData.nama || '',
+        deskripsi: initialData.deskripsi || '',
+        jumlah_total: initialData.jumlah_total || 0,
+        kategori_id: initialData.kategori_id || null
+      });
+    } else {
+      // reset when opening for add
+      setFormData({ nama: '', deskripsi: '', jumlah_total: 0, kategori_id: null });
+    }
+  }, [initialData, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +144,22 @@ export default function KomoditasModal({
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
             />
+          </div>
+
+          {/* Kategori */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Kategori</label>
+            <select
+              name="kategori_id"
+              value={formData.kategori_id ?? ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, kategori_id: e.target.value ? parseInt(e.target.value) : null }))}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+            >
+              <option value="">-- Pilih Kategori (Opsional) --</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.nama}</option>
+              ))}
+            </select>
           </div>
 
           {/* Button Actions */}

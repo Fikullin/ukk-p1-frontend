@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/Sidebar';
 import Toast from '../../../components/Toast';
+import * as XLSX from 'xlsx';
 
 interface LaporanData {
   bulan: string;
@@ -83,6 +84,57 @@ export default function LaporanPeminjaman() {
   const stats = getTotalStats();
   const persentase = getPersentaseKembali();
 
+  const exportToExcel = () => {
+    try {
+      // Prepare data for Excel
+      const excelData = data.map(item => ({
+        'Bulan': formatDate(item.bulan),
+        'Total Peminjaman': item.total_peminjaman,
+        'Dikembalikan': item.dikembalikan,
+        'Belum Dikembalikan': item.belum_dikembalikan,
+        'Persentase Kembali (%)': item.total_peminjaman === 0 ? 0 : Math.round((item.dikembalikan / item.total_peminjaman) * 100)
+      }));
+
+      // Add summary row
+      excelData.unshift({
+        'Bulan': 'TOTAL',
+        'Total Peminjaman': stats.total_peminjaman,
+        'Dikembalikan': stats.dikembalikan,
+        'Belum Dikembalikan': stats.belum_dikembalikan,
+        'Persentase Kembali (%)': persentase
+      });
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Auto-size columns
+      const colWidths = [
+        { wch: 15 }, // Bulan
+        { wch: 18 }, // Total Peminjaman
+        { wch: 12 }, // Dikembalikan
+        { wch: 18 }, // Belum Dikembalikan
+        { wch: 20 }  // Persentase Kembali (%)
+      ];
+      ws['!cols'] = colWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Laporan Peminjaman');
+
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `laporan-peminjaman-${currentDate}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+
+      setToast({ message: 'Laporan berhasil diekspor ke Excel', type: 'success' });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      setToast({ message: 'Gagal mengekspor laporan', type: 'error' });
+    }
+  };
+
   return (
     <>
       <Sidebar />
@@ -136,8 +188,18 @@ export default function LaporanPeminjaman() {
 
             {/* Detail Table */}
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900">Riwayat Peminjaman per Bulan</h2>
+                <button
+                  onClick={exportToExcel}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors duration-200 flex items-center gap-2"
+                  title="Export ke Excel"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export Excel
+                </button>
               </div>
 
               <table className="w-full">

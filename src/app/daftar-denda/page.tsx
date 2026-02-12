@@ -16,6 +16,7 @@ interface Denda {
   denda_hilang: number;
   total_denda: number;
   status_pembayaran: string;
+  pending_validation?: number;
   tanggal_pembayaran?: string;
   tanggal_pinjam: string;
   deadline: string;
@@ -49,22 +50,10 @@ export default function DaftarDenda() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      const userData = JSON.parse(user);
-      setUserId(userData.id);
-      setUserRole(userData.role);
-      fetchDendaData(userData.id);
-    } else {
-      router.push('/login');
-    }
-  }, []);
-
   const fetchDendaData = async (id: number) => {
     try {
       const token = localStorage.getItem('token');
-      
+
       // Fetch denda list
       const listResponse = await fetch(`http://localhost:3001/api/users/${id}/denda`, {
         headers: {
@@ -97,18 +86,38 @@ export default function DaftarDenda() {
     }
   };
 
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      setUserId(userData.id);
+      setUserRole(userData.role);
+      fetchDendaData(userData.id);
+    } else {
+      router.push('/login');
+    }
+  }, []);
+
   const totalPages = Math.ceil(dendaList.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedDenda = dendaList.slice(startIndex, endIndex);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, pending?: number) => {
+    if (pending === 1) {
+      return (
+        <span className="relative z-40 px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+          ⏳ Menunggu Validasi
+        </span>
+      );
+    }
+
     return status === 'sudah_dibayar' ? (
-      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+      <span className="relative z-40 px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
         ✓ Sudah Dibayar
       </span>
     ) : (
-      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+      <span className="relative z-40 px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
         ⚠ Belum Dibayar
       </span>
     );
@@ -229,8 +238,8 @@ export default function DaftarDenda() {
               </div>
             ) : (
               <>
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <table className="w-full">
+                <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                  <table className="w-full min-w-[1100px]">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
@@ -241,6 +250,7 @@ export default function DaftarDenda() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rincian Denda</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Denda</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -289,7 +299,36 @@ export default function DaftarDenda() {
                             {formatCurrency(denda.total_denda)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            {getStatusBadge(denda.status_pembayaran)}
+                            {getStatusBadge(denda.status_pembayaran, denda.pending_validation)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm bg-white">
+                            {denda.status_pembayaran === 'belum_dibayar' && denda.pending_validation !== 1 && userRole === 'siswa' ? (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`http://localhost:3001/api/denda/${denda.id}/pay`, { method: 'PATCH', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+                                    const data = await res.json();
+                                    if (res.ok) {
+                                      if (data.pending) {
+                                        setToast({ message: 'Pembayaran tercatat, menunggu validasi petugas', type: 'info' });
+                                      } else {
+                                        setToast({ message: 'Pembayaran tercatat', type: 'success' });
+                                      }
+                                      fetchDendaData(userId!);
+                                    } else {
+                                      setToast({ message: data.error || 'Gagal mencatat pembayaran', type: 'error' });
+                                    }
+                                  } catch (err) {
+                                    setToast({ message: 'Terjadi kesalahan', type: 'error' });
+                                  }
+                                }}
+                                className="relative z-50 px-3 py-2 bg-green-600 text-white rounded-md shadow-md hover:bg-green-700 text-sm font-semibold"
+                              >Bayar</button>
+                            ) : denda.pending_validation === 1 ? (
+                              <button disabled className="px-3 py-2 bg-gray-300 text-gray-700 rounded-md text-sm">Menunggu Validasi</button>
+                            ) : (
+                              <span className="text-sm text-gray-600">-</span>
+                            )}
                           </td>
                         </tr>
                       ))}

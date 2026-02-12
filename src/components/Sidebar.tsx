@@ -50,6 +50,17 @@ export default function Sidebar() {
     return false;
   });
 
+  const [isDendaOpen, setIsDendaOpen] = useState(() => {
+    if (pathname.startsWith('/denda') || pathname === '/daftar-denda') {
+      return true;
+    }
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('isDendaOpen');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+
   const togglePeminjaman = () => {
     const newState = !isPeminjamanOpen;
     setIsPeminjamanOpen(newState);
@@ -62,10 +73,17 @@ export default function Sidebar() {
     localStorage.setItem('isManajemenAkunOpen', JSON.stringify(newState));
   };
 
+  const toggleDenda = () => {
+    const newState = !isDendaOpen;
+    setIsDendaOpen(newState);
+    localStorage.setItem('isDendaOpen', JSON.stringify(newState));
+  };
+
   const isActive = (href: string) => {
     if (href === '/beranda') return pathname === '/beranda';
     if (href === '/komoditas') return pathname === '/komoditas';
     if (href === '/peminjaman') return pathname.startsWith('/peminjaman');
+    if (href === '/denda') return pathname.startsWith('/denda') || pathname === '/daftar-denda';
     if (href === '/log-aktivitas') return pathname === '/log-aktivitas';
     if (href === '/manajemen-akun') return pathname === '/manajemen-akun' || pathname.startsWith('/manajemen-akun');
     return pathname === href;
@@ -136,6 +154,23 @@ export default function Sidebar() {
           <span>Daftar Alat</span>
         </a>
 
+        {/* Kategori - visible for petugas & admin */}
+        {(userRole === 'petugas' || userRole === 'administrator') && (
+          <a
+            href="/kategori"
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+              isActive('/kategori')
+                ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                : 'text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span>Kategori</span>
+          </a>
+        )}
+
         {/* Peminjaman Dropdown */}
         <div>
           <button
@@ -176,6 +211,42 @@ export default function Sidebar() {
               >
                 Riwayat
               </a>
+              {(userRole === 'petugas' || userRole === 'administrator') && (
+                <a
+                  href="/peminjaman/laporan"
+                  className={`flex px-3 py-2 text-sm rounded-md transition-all duration-200 ${
+                    pathname === '/peminjaman/laporan'
+                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Laporan
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Denda Dropdown */}
+        <div>
+          <button
+            onClick={toggleDenda}
+            className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+              isActive('/denda')
+                ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                : 'text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="flex-1 text-left">Denda</span>
+            <svg className={`w-4 h-4 flex-shrink-0 transition-transform duration-300 ${isDendaOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isDendaOpen && (
+            <div className="ml-8 mt-1 space-y-0.5 border-l-2 border-indigo-200 pl-3">
               {userRole === 'siswa' && (
                 <a
                   href="/daftar-denda"
@@ -190,14 +261,26 @@ export default function Sidebar() {
               )}
               {(userRole === 'petugas' || userRole === 'administrator') && (
                 <a
-                  href="/peminjaman/laporan"
+                  href="/denda/validasi"
                   className={`flex px-3 py-2 text-sm rounded-md transition-all duration-200 ${
-                    pathname === '/peminjaman/laporan'
+                    pathname === '/denda/validasi'
                       ? 'bg-indigo-50 text-indigo-700 font-semibold'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  Laporan
+                  Validasi Denda
+                </a>
+              )}
+              {(userRole === 'petugas' || userRole === 'administrator') && (
+                <a
+                  href="/denda/riwayat"
+                  className={`flex px-3 py-2 text-sm rounded-md transition-all duration-200 ${
+                    pathname === '/denda/riwayat'
+                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  Riwayat Denda
                 </a>
               )}
             </div>
