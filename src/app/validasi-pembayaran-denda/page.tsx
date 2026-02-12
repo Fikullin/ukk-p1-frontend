@@ -56,7 +56,7 @@ export default function ValidasiPembayaranDenda() {
   const fetchPendingPayments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/denda/pending', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/denda/pending`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -78,7 +78,7 @@ export default function ValidasiPembayaranDenda() {
   const fetchApprovedPayments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/denda/approved', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/denda/approved`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -97,7 +97,7 @@ export default function ValidasiPembayaranDenda() {
     setValidatingId(payment.id);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/denda/${payment.id}/validasi`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/denda/${payment.id}/validasi`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

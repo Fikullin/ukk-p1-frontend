@@ -50,7 +50,7 @@ export default function KomoditasModal({
   const fetchKategori = async () => {
     setLoadingKategori(true);
     try {
-      const response = await fetch('http://localhost:3001/api/kategori', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kategori`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

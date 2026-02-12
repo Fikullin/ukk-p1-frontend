@@ -45,7 +45,7 @@ export default function RiwayatPeminjaman() {
           setUserRole(userData.role);
         }
 
-        const response = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/riwayat`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -111,7 +111,7 @@ export default function RiwayatPeminjaman() {
     if (!selectedItem) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${selectedItem.id}`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/${selectedItem.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -129,8 +129,8 @@ export default function RiwayatPeminjaman() {
         // Refresh data
         const fetchRiwayat = async () => {
           try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
+      const token = localStorage.getItem('token');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/riwayat`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -168,7 +168,7 @@ export default function RiwayatPeminjaman() {
       const tanggal_kembali = now.toISOString().split('T')[0];
       const jam_kembali = now.toTimeString().split(' ')[0];
 
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${itemToReturn.id}/request-return`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/${itemToReturn.id}/request-return`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ export default function RiwayatPeminjaman() {
         const fetchRiwayat = async () => {
           try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/riwayat`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -221,7 +221,7 @@ export default function RiwayatPeminjaman() {
       const tanggal_kembali = now.toISOString().split('T')[0];
       const jam_kembali = now.toTimeString().split(' ')[0];
 
-      const response = await fetch(`http://localhost:3001/api/peminjaman/${id}/request-return`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/${id}/request-return`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -245,7 +245,7 @@ export default function RiwayatPeminjaman() {
         const fetchRiwayat = async () => {
           try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/riwayat`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }

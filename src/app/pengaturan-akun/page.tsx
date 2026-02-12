@@ -50,7 +50,7 @@ export default function PengaturanAkun() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/users/profile/update-nama', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/profile/update-nama`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export default function PengaturanAkun() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/users/profile/update-password', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/profile/update-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

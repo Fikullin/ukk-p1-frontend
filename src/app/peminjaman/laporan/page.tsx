@@ -27,7 +27,7 @@ export default function LaporanPeminjaman() {
   const fetchLaporan = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/peminjaman/laporan', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/laporan`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

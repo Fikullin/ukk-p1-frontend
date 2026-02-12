@@ -34,7 +34,7 @@ export default function PeminjamanHariIni() {
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('');
   const canManage = ['petugas', 'administrator', 'admin'].includes(userRole);
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL;
   
   const [selectedItem, setSelectedItem] = useState<Peminjaman | null>(null);
   const [expandedRows, setExpandedRows] = useState<number[]>([]);

@@ -54,7 +54,7 @@ export default function ManajemenAkun() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/users', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -132,7 +132,7 @@ export default function ManajemenAkun() {
           updateData.password = formData.password;
         }
 
-        const response = await fetch(`http://localhost:3001/api/users/${editingUserId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${editingUserId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ export default function ManajemenAkun() {
         }
       } else {
         // Create user
-        const response = await fetch('http://localhost:3001/api/users', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ export default function ManajemenAkun() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/users/${userId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

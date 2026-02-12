@@ -77,7 +77,7 @@ export default function Sidebar() {
         
         // Apply automatic overdue fines
         try {
-          await fetch('http://localhost:3001/api/peminjaman/apply-overdue-fines', {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/apply-overdue-fines`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -85,7 +85,7 @@ export default function Sidebar() {
           console.log('Fine application skipped:', fineErr);
         }
 
-        const res = await fetch('http://localhost:3001/api/peminjaman/riwayat', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/peminjaman/riwayat`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) return;

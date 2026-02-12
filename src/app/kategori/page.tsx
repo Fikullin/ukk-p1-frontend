@@ -48,7 +48,7 @@ export default function Kategori() {
   const fetchKategori = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/kategori', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kategori`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -82,7 +82,7 @@ export default function Kategori() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:3001/api/kategori', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kategori`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ export default function Kategori() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/kategori/${editingCategory.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kategori/${editingCategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ export default function Kategori() {
     if (categoryToDelete === null) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/kategori/${categoryToDelete}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kategori/${categoryToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

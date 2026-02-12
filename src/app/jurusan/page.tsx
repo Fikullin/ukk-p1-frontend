@@ -32,7 +32,7 @@ export default function Jurusan() {
 
   const fetchJurusan = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/jurusan', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jurusan`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -52,8 +52,8 @@ export default function Jurusan() {
     e.preventDefault();
     try {
       const url = editingJurusan
-        ? `http://localhost:3001/api/jurusan/${editingJurusan.id}`
-        : 'http://localhost:3001/api/jurusan';
+        ? `${process.env.NEXT_PUBLIC_API_URL}/api/jurusan/${editingJurusan.id}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/api/jurusan`;
 
       const method = editingJurusan ? 'PUT' : 'POST';
 
@@ -99,7 +99,7 @@ export default function Jurusan() {
     if (jurusanToDelete === null) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/jurusan/${jurusanToDelete}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jurusan/${jurusanToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

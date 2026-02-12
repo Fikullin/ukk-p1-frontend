@@ -34,7 +34,7 @@ export default function LogAktivitasPage() {
         return;
       }
 
-      const response = await fetch('http://localhost:3001/api/log-aktivitas', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/log-aktivitas`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -56,7 +56,7 @@ export default function LogAktivitasPage() {
       }
     } catch (err) {
       console.error('Error fetching logs:', err);
-      setError('Terjadi kesalahan koneksi ke server. Pastikan backend berjalan di http://localhost:3001');
+      setError('Terjadi kesalahan koneksi ke server. Pastikan backend berjalan');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function LogAktivitasPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/log-aktivitas/petugas', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/log-aktivitas/petugas`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -86,7 +86,7 @@ export default function LogAktivitasPage() {
         setToast({ message: data.message, type: 'success' });
         // Refresh logs
         try {
-          const fetchResponse = await fetch('http://localhost:3001/api/log-aktivitas', {
+          const fetchResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/log-aktivitas`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
