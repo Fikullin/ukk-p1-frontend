@@ -292,11 +292,13 @@ export default function Beranda() {
             {/* Current Borrowings */}
             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Peminjaman Hari Ini</h2>
-              {currentBorrowings.length === 0 ? (
+              {currentBorrowings.filter(item => item.status === 'dipinjam' || item.status === 'menunggu').length === 0 ? (
                 <p className="text-gray-500">Tidak ada peminjaman aktif hari ini</p>
               ) : (
                 <div className="space-y-4">
-                  {currentBorrowings.map((item) => (
+                  {currentBorrowings
+                    .filter(item => item.status === 'dipinjam' || item.status === 'menunggu')
+                    .map((item) => (
                     <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-200">
                       <div>
                         <p className="text-gray-900 font-medium">{item.komoditas_nama}</p>
